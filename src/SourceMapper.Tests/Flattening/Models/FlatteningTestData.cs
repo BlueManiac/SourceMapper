@@ -8,12 +8,12 @@ namespace SourceMapper.Tests.Flattening.Models
 {
     public class FlatteningTestData
     {
-        public FlatteningTestDataInner Inner { get; set; }
+        public required FlatteningTestDataInner Inner { get; set; }
     }
 
     public class FlatteningTestDataInner
     {
-        public string Name { get; set; }
-        public string Cool { get; internal set; }
+        public required string Name { get; set; }
+        public string? Cool { get; internal set; }
     }
 }

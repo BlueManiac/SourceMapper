@@ -8,5 +8,5 @@ namespace SourceMapper.Tests.Models;
 
 public class Test2
 {
-    public string Name { get; set; }
+    public required string Name { get; set; }
 }

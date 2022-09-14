@@ -9,6 +9,6 @@ namespace SourceMapper.Tests.Models;
 
 public partial class TestProjection : IMapping<Test, TestProjection>
 {
-    public string Name { get; set; }
-    public string Cool { get; set; }
+    public required string Name { get; set; }
+    public string? Cool { get; set; }
 }

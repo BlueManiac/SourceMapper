@@ -9,5 +9,5 @@ namespace SourceMapper.Tests.Models;
 
 public partial class TestProjection3 : IMapping<Test2, TestProjection3>
 {
-    public string Name { get; set; }
+    public required string Name { get; set; }
 }
