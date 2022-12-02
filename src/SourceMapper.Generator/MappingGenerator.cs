@@ -1,10 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
-using System;
+using SourceMapper.Generator.Models;
 using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml.Linq;
 
 namespace SourceMapper.Generator;
 
@@ -22,7 +18,17 @@ public class MappingGenerator : ISourceGenerator
 
         foreach (var map in mappingFinder.Maps)
         {
-            var properties = map.Properties.Select(x => $"{x.Target} = x.{x.Source}");
+            var properties = map.Properties.Select(x =>
+            {
+                if (x is MemberExpressionRecord exp)
+                {
+                    return $"{exp.Target} = {exp.SourceExpression("x")}";
+                }
+
+                var record = (MemberRecord)x;
+
+                return $"{record.Target} = x.{record.Source}";
+            });
 
             string source = $@"using System;
 using System.Linq.Expressions;

@@ -3,6 +3,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using SourceMapper.Generator.Models;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 namespace SourceMapper.Generator;
@@ -28,6 +29,10 @@ public class MappingFinder : ISyntaxContextReceiver
         var from = (INamedTypeSymbol)classInterface.TypeArguments[0];
         var to = (INamedTypeSymbol)classInterface.TypeArguments[1];
 
+        //Debugger.Launch();
+
+        var memberExpressions = ParseConfigure(to).ToDictionary(x => x.Target);
+
         Maps.Add(new MapperRecord
         {
             Namespace = namespaceSyntax.Name.ToString(),
@@ -36,17 +41,27 @@ public class MappingFinder : ISyntaxContextReceiver
             From = from.ToString(),
             To = to.ToString(),
             ToName = to.Name,
-            Properties = ParseMembers(from, to).ToList()
+            Properties = ParseMembers(from, to, memberExpressions).ToList()
         });
     }
 
-    private IEnumerable<MemberRecord> ParseMembers(INamedTypeSymbol from, INamedTypeSymbol to)
+    private IEnumerable<IMemberRecord> ParseMembers(INamedTypeSymbol from, INamedTypeSymbol to, Dictionary<string, MemberExpressionRecord> memberExpressions)
     {
         var fromProperties = from.GetMembers().Where(x => x.Kind == SymbolKind.Property).OfType<IPropertySymbol>().ToList();
         var toProperties = to.GetMembers().Where(x => x.Kind == SymbolKind.Property).OfType<IPropertySymbol>();
 
         foreach (var property in toProperties)
         {
+            // Custom mapping
+            if (memberExpressions.TryGetValue(property.Name, out var memberExpression))
+            {
+                memberExpression.Type = property.Type.Name;
+
+                yield return memberExpression;
+
+                continue;
+            }
+
             // Basic mapping
             {
                 if (fromProperties.Find(x => x.Name == property.Name) is IPropertySymbol symbol)
@@ -82,6 +97,52 @@ public class MappingFinder : ISyntaxContextReceiver
                     }
                 }
             }
+        }
+    }
+
+    private IEnumerable<MemberExpressionRecord> ParseConfigure(INamedTypeSymbol to)
+    {
+        var symbol = to.GetMembers().OfType<IMethodSymbol>().FirstOrDefault(x => x.Name == "Configure");
+
+        if (symbol is null)
+            yield break;
+
+        if (symbol.DeclaringSyntaxReferences[0].GetSyntax() is not MethodDeclarationSyntax syntax)
+            yield break;
+
+        var body = syntax.Body;
+
+        if (body is null)
+            yield break;
+
+        foreach (var statementSyntax in body.Statements.OfType<ExpressionStatementSyntax>())
+        {
+            if (statementSyntax.Expression is not InvocationExpressionSyntax invocationSyntax)
+                continue;
+
+            var arguments = invocationSyntax.ArgumentList.Arguments;
+
+            if (arguments.Count != 2)
+                continue;
+
+            var fromArgument = arguments[0];
+
+            var fieldName = ((fromArgument.Expression as SimpleLambdaExpressionSyntax)?.Body as MemberAccessExpressionSyntax)?.Name.Identifier.ValueText;
+
+            if (fieldName is null)
+                continue;
+
+            if (arguments[1].Expression is not SimpleLambdaExpressionSyntax toArgumentExpressionSyntax)
+                continue;
+
+            var fieldBody = toArgumentExpressionSyntax.Body.ToString();
+            var argument = toArgumentExpressionSyntax.Parameter.Identifier.ValueText;
+
+            yield return new()
+            {
+                Target = fieldName,
+                SourceExpression = param => fieldBody.Replace(argument, param)
+            };
         }
     }
 }

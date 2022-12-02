@@ -9,6 +9,6 @@ public record MapperRecord
     public string FullClassName { get; set; }
     public string From { get; set; }
     public string To { get; set; }
-    public List<MemberRecord> Properties { get; set; }
+    public List<IMemberRecord> Properties { get; set; }
     public string ToName { get; set; }
 }
