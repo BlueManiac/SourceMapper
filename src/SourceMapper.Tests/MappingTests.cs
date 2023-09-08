@@ -70,7 +70,7 @@ public class MappingTests
 
         var list = new List<Test2> { model1 };
 
-        var projection = list.AsQueryable().Map().To<TestProjection3>().ToList();
+        var projection = list.AsQueryable().Map().To<TestProjection2>().ToList();
 
         Assert.AreEqual(model1.Name, projection[0].Name);
     }

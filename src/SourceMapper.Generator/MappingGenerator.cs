@@ -35,7 +35,7 @@ using System.Linq.Expressions;
 
 namespace {map.Namespace}
 {{
-    public partial class {map.ClassName}
+    public partial class {map.ClassName} : IMapping<{map.From}, {map.To}>
     {{
         public static Expression<Func<{map.From}, {map.To}>> MapFromExpression {{ get; }} = x => new {map.ToName}
         {{

@@ -3,7 +3,6 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using SourceMapper.Generator.Models;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 
 namespace SourceMapper.Generator;
@@ -17,19 +16,35 @@ public class MappingFinder : ISyntaxContextReceiver
         if (context.Node is not ClassDeclarationSyntax syntax)
             return;
 
-        if (context.SemanticModel.GetDeclaredSymbol(syntax) is not INamedTypeSymbol classSymbol)
+        if (context.SemanticModel.GetDeclaredSymbol(syntax) is not INamedTypeSymbol to)
             return;
 
-        if (classSymbol.AllInterfaces.FirstOrDefault(x => x.Name == "IMapping") is not INamedTypeSymbol classInterface)
+        var attributeNames = syntax.AttributeLists
+            .SelectMany(attributeList => attributeList.Attributes)
+            .Select(attribute => attribute.Name)
+            .OfType<GenericNameSyntax>();
+
+        var attribute = attributeNames.FirstOrDefault(x => x.Identifier.ValueText == "Map");
+
+        if (attribute is null)
             return;
+
+        //Debugger.Launch();
+
+        var typeArguments = attribute.TypeArgumentList.Arguments;
+
+        if (typeArguments.Count == 0)
+            return;
+
+        var symbol = context.SemanticModel.GetSymbolInfo(typeArguments[0]).Symbol;
+
+        if (symbol is null)
+            return;
+
+        var from = (INamedTypeSymbol)symbol;
 
         if (syntax.Parent is not BaseNamespaceDeclarationSyntax namespaceSyntax)
             return;
-
-        var from = (INamedTypeSymbol)classInterface.TypeArguments[0];
-        var to = (INamedTypeSymbol)classInterface.TypeArguments[1];
-
-        //Debugger.Launch();
 
         var memberExpressions = ParseConfigure(to).ToDictionary(x => x.Target);
 

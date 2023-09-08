@@ -1,5 +1,6 @@
 ﻿namespace SourceMapper.Tests.Custom.Models;
-public partial class CustomTestDataProjection : IMapping<CustomTestData, CustomTestDataProjection>
+[Map<CustomTestData>]
+public partial class CustomTestDataProjection
 {
     public required string Name { get; set; }
     public string? Cool { get; set; }
